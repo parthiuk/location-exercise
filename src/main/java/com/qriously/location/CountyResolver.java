@@ -30,15 +30,40 @@ public abstract class CountyResolver implements Runnable, Closeable {
      */
     public abstract String resolve(Coordinate coordinate);
 
+    public abstract void process();
+    
     /**
      * Run the resolver
      */
+//    @Override
+//    public void run() {
+//        start = System.currentTimeMillis();
+//
+//        Coordinate coordinate;
+//        try {
+//            while (getRuntimeDuration() < MAX_RUNTIME.getSeconds() && (coordinate = coordinateSupplier.get()) != null) {
+//                attempted++;
+//                String county = resolve(coordinate);
+//                if (county != null) {
+//                    resolved++;
+//                    results.computeIfAbsent(county, key -> new AtomicInteger(0)).incrementAndGet();
+//                }
+//                end = System.currentTimeMillis();
+//            }
+//        } catch (Exception ex) {
+//            didError = true;
+//        }
+//        end = System.currentTimeMillis();
+//
+//    }
+
+    
     @Override
     public void run() {
         start = System.currentTimeMillis();
 
-        Coordinate coordinate;
         try {
+            Coordinate coordinate;
             while (getRuntimeDuration() < MAX_RUNTIME.getSeconds() && (coordinate = coordinateSupplier.get()) != null) {
                 attempted++;
                 String county = resolve(coordinate);
@@ -54,7 +79,7 @@ public abstract class CountyResolver implements Runnable, Closeable {
         end = System.currentTimeMillis();
 
     }
-
+    
     /**
      * Returns the results map containing LVL_2_ID, resolved count.
      */

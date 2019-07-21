@@ -12,7 +12,7 @@ public class ResolverTest {
         try (CoordinateSupplier coordinateSupplier = new CoordinateSupplier();
              CountyResolver resolver = new BasicCountyResolver(coordinateSupplier)) {
 
-            resolver.run();
+            resolver.process();
 
             Assert.assertFalse("There were error when running the resolver", resolver.resolverError());
 

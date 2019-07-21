@@ -1,5 +1,15 @@
 package com.qriously.location;
 
+import java.io.Closeable;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.nio.file.Paths;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
 import org.geotools.data.FileDataStore;
 import org.geotools.data.FileDataStoreFinder;
 import org.geotools.data.simple.SimpleFeatureCollection;
@@ -10,9 +20,6 @@ import org.geotools.filter.text.cql2.CQLException;
 import org.opengis.feature.simple.SimpleFeature;
 import org.opengis.filter.Filter;
 
-import java.io.*;
-import java.nio.file.Paths;
-
 public class BasicCountyResolver extends CountyResolver implements Closeable {
 
     private static final String TEMP_DIR = "java.io.tmpdir";
@@ -20,6 +27,10 @@ public class BasicCountyResolver extends CountyResolver implements Closeable {
     private final static String USA_COUNTIES = "usa_counties";
 
     private final String shapeFilePath;
+    
+    private final String geometryPropertyName; 
+    
+    private final SimpleFeatureSource featureSource;
 
     /**
      * Initialise the BasicCountyResolver
@@ -27,16 +38,30 @@ public class BasicCountyResolver extends CountyResolver implements Closeable {
     public BasicCountyResolver(CoordinateSupplier coordinateSupplier) throws IOException {
         super(coordinateSupplier);
         shapeFilePath = extractShapeFiles(USA_COUNTIES);
+        
+        FileDataStore store = FileDataStoreFinder.getDataStore(new File(shapeFilePath + ".shp"));
+        featureSource = store.getFeatureSource();
+        geometryPropertyName = featureSource.getSchema().getGeometryDescriptor().getLocalName();
     }
 
+    public String getFilterCriteria(Coordinate coordinate) {
+    	StringBuilder builder = new StringBuilder();
+    	builder.append("CONTAINS(");
+    	builder.append(geometryPropertyName);
+    	builder.append(", POINT(");
+    	builder.append(coordinate.longitude);
+    	builder.append(" ");
+    	builder.append(coordinate.latitude);
+    	builder.append("))");
+    	return builder.toString();
+    }
+    
     @Override
     public String resolve(Coordinate coordinate) {
         String countyId = null;
         try {
-            FileDataStore store = FileDataStoreFinder.getDataStore(new File(shapeFilePath + ".shp"));
-            SimpleFeatureSource featureSource = store.getFeatureSource();
-            String geometryPropertyName = featureSource.getSchema().getGeometryDescriptor().getLocalName();
-            Filter filter = CQL.toFilter("CONTAINS(" + geometryPropertyName + ", POINT(" + coordinate.longitude + " " + coordinate.latitude + "))");
+//        	String str = "CONTAINS(" + geometryPropertyName + ", POINT(" + coordinate.longitude + " " + coordinate.latitude + "))";
+            Filter filter = CQL.toFilter(getFilterCriteria(coordinate));
 
             SimpleFeatureCollection features = featureSource.getFeatures(filter);
             SimpleFeatureIterator featureIterator = features.features();
@@ -92,5 +117,17 @@ public class BasicCountyResolver extends CountyResolver implements Closeable {
                 file.delete();
             }
         }
+    }
+    
+    public void process() {
+    	ExecutorService executor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
+        for (int i = 0; i < 10; i++) {
+            executor.execute(this);
+        }
+        
+        executor.shutdown();
+        while (!executor.isTerminated()) {
+        }
+        System.out.println("Finished all threads");
     }
 }
