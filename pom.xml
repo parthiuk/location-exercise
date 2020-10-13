@@ -10,7 +10,7 @@
 
     <properties>
         <geotools.version>11.1</geotools.version>
-        <junit.version>4.11</junit.version>
+        <junit.version>4.13.1</junit.version>
     </properties>
 
     <repositories>
